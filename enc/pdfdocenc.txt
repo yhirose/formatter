@@ -90,7 +90,8 @@
 0079 79 y
 007A 7a z
 007B 7b braceleft
-007C 7c verticalbar
+#007C 7c verticalbar # TODO:
+007C 7c bar
 007D 7d braceright
 007E 7e asciitilde
 00A1 a1 exclamdown
