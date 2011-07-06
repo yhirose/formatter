@@ -2,7 +2,7 @@
 
 fs = require 'fs'
 #_ = require 'underscore'
-#_.mixin require 'underscore.string'
+#_s = require 'underscore.string'
 
 read_file = (path, callback) ->
   if path
@@ -37,7 +37,7 @@ load_afm = (font, callback) ->
 load_pdfdoc_enc = (callback) ->
   fs.readFile 'enc/pdfdocenc.txt', 'utf8', (err, data) ->
     enc = {}
-    for l in data.split '\n' when l.length > 0
+    for l in data.split '\n' when l.length > 0 and l[0] isnt '#'
       [uc, ec, nm] = l.split ' '
       uc = parseInt uc, 16
       ec = parseInt ec, 16
@@ -55,11 +55,11 @@ run = (file, font, out) ->
             wd = afm.chm[nm].WX
             out ch, uc, wd, nm
 
-argv = process.argv
-file = if argv.length >= 3 then argv[2] else undefined
-font = if argv.length >= 4 then argv[3] else 'Times-Roman'
+argv = require('optimist').argv
+font = argv.font || 'Times-Roman'
+file = argv._[0]
 
-file = 'sandbox.coffee'
+#file = 'sandbox.coffee'
 run file, font, console.log
 
 # vim: et ts=2 sw=2
