@@ -25,7 +25,8 @@ load_afm = (font, callback) ->
         l = lines[++i]
         until /^EndCharMetrics/.exec l
           m = {}
-          for [c, d...] in (x.split ' ' for x in l.split /\s*;\s*/ when x.length > 0)
+          for x in l.split /\s*;\s*/ when x.length > 0
+            [c, d...]  = x.split ' '
             switch c
               when 'C', 'WX', 'B'
                 d = d.map (x) -> parseInt x, 10
