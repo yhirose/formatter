@@ -17,8 +17,8 @@ endobj
 3 0 obj
 <<
   /Type /Pages
-  /Kids [4 0 R]
-  /Count 1
+  /Kids [4 0 R 8 0 R]
+  /Count 2
 >>
 endobj
 
@@ -44,7 +44,25 @@ endobj
   /Length 0
 >>
 stream
-BT /F1 24 Tf 100 100 Td (Hello World) Tj
+q
+1 0 0 1 0 0 cm
+.2 w
+0 0 1 rg
+72 720 m 218 720 l
+72 708.88 m 218 708.88 l
+72 705.5 m 218 705.5 l
+72 720 m 72 576 l
+S
+Q
+BT
+/F1 12 Tf
+14.5 TL
+%72 709 Td
+72 708.88 Td
+(01234567890*()/*AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz) Tj
+T*
+(Ag Tj) Tj
+ET
 endstream
 endobj
 
@@ -62,9 +80,27 @@ endobj
 >>
 endobj
 
+8 0 obj
+<<
+  /Type /Page
+  /Parent 3 0 R
+  /MediaBox [0 0 612 792]
+  /Contents 5 0 R
+  /Resources
+  <<
+    /ProcSet 6 0 R
+    /Font
+    <<
+      /F1 7 0 R
+    >>
+  >>
+>>
+endobj
+
 xref
-0 8
+0 9
 0000000000 65535 f
+0000000000 00000 n
 0000000000 00000 n
 0000000000 00000 n
 0000000000 00000 n
@@ -75,7 +111,7 @@ xref
 
 trailer
 <<
-  /Size 8
+  /Size 9
   /Root 1 0 R
 >>
 startxref
