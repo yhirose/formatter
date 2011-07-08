@@ -59,26 +59,36 @@ roundPosition = (x) ->
   Math.round(x * 1000) / 1000
 
 lineBreak = (par, colw, fs, fm) ->
-  chunks = []
+  result = []
   maxlw = colw * 1000
   lw = 0
   st = 0
+  codes = []
   for ch, i in par
     uc = par.charCodeAt i
-    codeInfo = enc[uc]
-    nm = if codeInfo then codeInfo[1] else 'emdash' # TODO: handle symbol chars
-    cw = fm.charMetrics[nm].WX * fs
-    if lw + cw > maxlw
-      chunks.push par.slice st, i
-      st = i
-      lw = 0
-    lw += cw
-  if st < i or chunks.length is 0
-    chunks.push par.slice st, i
-  chunks
 
-encodePDFText = (s) ->
-  s.replace /([()])/g, -> '\\' + RegExp.$1
+    codeInfo = enc[uc]
+    if codeInfo
+      [code, psname] = codeInfo
+    else
+      # TODO: handle symbol chars
+      code = 0x3f;
+      psname = 'question'
+
+    cw = fm.charMetrics[psname].WX * fs
+    if lw + cw > maxlw
+      result.push codes
+      lw = 0
+      st = i
+      codes = []
+
+    lw += cw
+    codes.push code
+
+  if st < i or result.length is 0
+    result.push codes
+
+  result
 
 formatColumns = (text, cbox, fontName, fontSize, leading) ->
   leading = fontSize * 1.2
@@ -91,12 +101,12 @@ formatColumns = (text, cbox, fontName, fontSize, leading) ->
   col = []
   y = cbox.h - asc
   for par in text.split '\n'
-    for line in lineBreak par, cbox.w, fontSize, fm
+    for codes in lineBreak par, cbox.w, fontSize, fm
       if y - dsc < 0
         contents.push col
         col = []
         y = cbox.h - asc
-      col.push x: 0, y: y, s: line
+      col.push x: 0, y: y, codes: codes
       y -= leading
   contents.push col if col.length > 0
   contents
@@ -166,62 +176,62 @@ outputPDF = (cxt) ->
         /Type /Font
         /Subtype /Type1
         /BaseFont /Times-Roman
-        /Encoding /PDFDocEncoding >>
+        >>
       /F2 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Times-Bold
-        /Encoding /PDFDocEncoding >>
+        >>
       /F3 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Times-Italic
-        /Encoding /PDFDocEncoding >>
+        >>
       /F4 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Times-BoldItalic
-        /Encoding /PDFDocEncoding >>
+        >>
       /F5 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Helvetica
-        /Encoding /PDFDocEncoding >>
+        >>
       /F6 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Helvetica-Bold
-        /Encoding /PDFDocEncoding >>
+        >>
       /F7 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Helvetica-Oblique
-        /Encoding /PDFDocEncoding >>
+        >>
       /F8 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Helvetica-BoldOblique
-        /Encoding /PDFDocEncoding >>
+        >>
       /F9 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Courier
-        /Encoding /PDFDocEncoding >>
+        >>
       /F10 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Couurier-Bold
-        /Encoding /PDFDocEncoding >>
+        >>
       /F11 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Couurier-Oblique
-        /Encoding /PDFDocEncoding >>
+        >>
       /F12 <<
         /Type /Font
         /Subtype /Type1
         /BaseFont /Couurier-BoldOblique
-        /Encoding /PDFDocEncoding >>
+        >>
     >>
     endobj\n\n
     """
@@ -296,7 +306,10 @@ outputPDF = (cxt) ->
       else
         x = l.x - col[lnId - 1].x
         y = l.y - col[lnId - 1].y
-      "#{roundPosition x} #{roundPosition y} Td\n(#{encodePDFText(l.s)}) Tj"
+
+      hexStr = '<' + (code.toString(16) for code in l.codes).join('') + '>'
+
+      "#{roundPosition x} #{roundPosition y} Td\n#{hexStr} Tj"
 
     s += """
       #{objId} 0 obj
