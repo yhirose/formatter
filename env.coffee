@@ -1,5 +1,3 @@
-#!/usr/bin/env coffee
-
 # **Env** module privides OS dependent functionaliteis.
 
 exports.fs = require 'fs'
@@ -20,5 +18,3 @@ exports.readFileOrStdin = (path, enc, callback) ->
     exports.stdin.read enc, callback
 
 exports.print = console.log
-
-# vim: et ts=2 sw=2

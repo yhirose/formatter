@@ -1,5 +1,6 @@
-#!/usr/bin/env coffee
-
+#
+#
+#
 env = require './env'
 
 PointsPerInch = 72
@@ -33,7 +34,7 @@ margins =
 
 getFontMetrics = (font) ->
   afm = require './afm'
-  afm.load_afm env.fs.readFileSync('./afm/' + font.name, 'utf8')
+  afm.loadAfm env.fs.readFileSync('./afm/' + font.name, 'utf8')
 
 calcBBox = (paperSize, margins) ->
   x: margins.l
@@ -315,5 +316,3 @@ env.readFileOrStdin srcPath, 'utf8', (data) ->
   cxt = formatText data, columnCount, fontName, fontSize, leading
   pdf = outputPDF cxt
   env.print pdf
-
-# vim: et ts=2 sw=2
