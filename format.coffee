@@ -3,6 +3,9 @@
 #
 env = require './env'
 
+pdf = require './pdf'
+enc = pdf.loadPDFDocEncoding env.fs.readFileSync('enc/pdfdocenc.txt', 'utf8')
+
 PointsPerInch = 72
 
 PaperSizeLetter =
@@ -55,6 +58,28 @@ calcColomnBox = (bbox, cols, gap) ->
 roundPosition = (x) ->
   Math.round(x * 1000) / 1000
 
+lineBreak = (par, colw, fs, fm) ->
+  chunks = []
+  maxlw = colw * 1000
+  lw = 0
+  st = 0
+  for ch, i in par
+    uc = par.charCodeAt i
+    codeInfo = enc[uc]
+    nm = if codeInfo then codeInfo[1] else 'emdash' # TODO: handle symbol chars
+    cw = fm.charMetrics[nm].WX * fs
+    if lw + cw > maxlw
+      chunks.push par.slice st, i
+      st = i
+      lw = 0
+    lw += cw
+  if st < i or chunks.length is 0
+    chunks.push par.slice st, i
+  chunks
+
+encodePDFText = (s) ->
+  s.replace /([()])/g, -> '\\' + RegExp.$1
+
 formatColumns = (text, cbox, fontName, fontSize, leading) ->
   leading = fontSize * 1.2
 
@@ -65,13 +90,14 @@ formatColumns = (text, cbox, fontName, fontSize, leading) ->
   contents = []
   col = []
   y = cbox.h - asc
-  for l in text.split '\n'
-    if y - dsc < 0
-      contents.push col
-      col = []
-      y = cbox.h - asc
-    col.push x: 0, y: y, s: l
-    y -= leading
+  for par in text.split '\n'
+    for line in lineBreak par, cbox.w, fontSize, fm
+      if y - dsc < 0
+        contents.push col
+        col = []
+        y = cbox.h - asc
+      col.push x: 0, y: y, s: line
+      y -= leading
   contents.push col if col.length > 0
   contents
 
@@ -270,7 +296,7 @@ outputPDF = (cxt) ->
       else
         x = l.x - col[lnId - 1].x
         y = l.y - col[lnId - 1].y
-      "#{roundPosition x} #{roundPosition y} Td\n(#{l.s}) Tj"
+      "#{roundPosition x} #{roundPosition y} Td\n(#{encodePDFText(l.s)}) Tj"
 
     s += """
       #{objId} 0 obj
