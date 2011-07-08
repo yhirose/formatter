@@ -1,20 +1,12 @@
 #!/usr/bin/env coffee
 
-Md =
-  afm: require './afm'
-  fs: require 'fs'
+env = require './env'
 
 PointsPerInch = 72
 
 PaperSizeLetter =
   w: 612
   h: 792
-
-margins =
-  l: PointsPerInch / 2
-  t: PointsPerInch / 2
-  r: PointsPerInch / 2
-  b: PointsPerInch / 2
 
 Fonts =
   Times:
@@ -33,11 +25,15 @@ Fonts =
     i:  { no: 11, type: 'afm', name: 'Courier-Oblique.afm' }
     bi: { no: 12, type: 'afm', name: 'Courier-BoldOblique.afm' }
 
+margins =
+  l: PointsPerInch / 2
+  t: PointsPerInch / 2
+  r: PointsPerInch / 2
+  b: PointsPerInch / 2
+
 getFontMetrics = (font) ->
-  fs = require 'fs'
-  path = './afm/' + font.name
-  data = Md.fs.readFileSync path, 'utf8'
-  fm = Md.afm.load_afm data
+  afm = require './afm'
+  afm.load_afm env.fs.readFileSync('./afm/' + font.name, 'utf8')
 
 calcBBox = (paperSize, margins) ->
   x: margins.l
@@ -308,14 +304,16 @@ outputPDF = (cxt) ->
     %%EOF\n
     """
 
-text = Md.fs.readFileSync 'format.coffee', 'utf8'
-columnCount = 3
-fontName = 'Times'
-fontSize = 8
-leading = fontSize * 1.2
+# Run the script.
+srcPath = env.args[2]
+env.readFileOrStdin srcPath, 'utf8', (data) ->
+  columnCount = 3
+  fontName = 'Times'
+  fontSize = 8
+  leading = fontSize * 1.2
 
-cxt = formatText(text, columnCount, fontName, fontSize, leading)
-pdf = outputPDF(cxt)
-console.log pdf
+  cxt = formatText data, columnCount, fontName, fontSize, leading
+  pdf = outputPDF cxt
+  env.print pdf
 
 # vim: et ts=2 sw=2
