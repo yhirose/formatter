@@ -66,18 +66,16 @@ formatColumns = (text, cbox, fontName, fontSize, leading) ->
   asc = roundPosition fm.fontBBox[3] * fontSize / 1000
 
   contents = []
-
   col = []
   y = cbox.h - asc
-  for l, i in text.split '\n'
+  for l in text.split '\n'
     if y - dsc < 0
       contents.push col
       col = []
       y = cbox.h - asc
-    col.push x: 0, y: y, s: i + ': ' + l
+    col.push x: 0, y: y, s: l
     y -= leading
   contents.push col if col.length > 0
-
   contents
 
 formatText = (text, colCount, fontName, fontSize, leading) ->
@@ -313,7 +311,6 @@ outputPDF = (cxt) ->
 text = Md.fs.readFileSync 'format.coffee', 'utf8'
 columnCount = 3
 fontName = 'Times'
-#fontName = 'Courier'
 fontSize = 8
 leading = fontSize * 1.2
 
