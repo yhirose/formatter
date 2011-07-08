@@ -10,4 +10,3 @@ exports.load_pdfdoc_enc = (data) ->
   enc
 
 # vim: et ts=2 sw=2
-

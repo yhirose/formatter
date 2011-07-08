@@ -5,8 +5,7 @@
 exports.load_afm = (data) ->
   afm = charMetrics: {}
   lines = (l.trim() for l in data.split '\n')
-  for i in [0...lines.length]
-    l = lines[i]
+  for l, i in lines
     if /^StartCharMetrics/.exec l
       i = parse_afm_charmetrics(afm, lines, ++i)
     else if /^FontBBox/.exec l
@@ -29,4 +28,3 @@ parse_afm_charmetrics = (afm, lines, i) ->
   i
 
 # vim: et ts=2 sw=2
-
