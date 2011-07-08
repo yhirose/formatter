@@ -55,12 +55,15 @@ calcColomnBox = (bbox, cols, gap) ->
   h: bbox.h
   offs: offs
 
+roundPosition = (x) ->
+  Math.round(x * 1000) / 1000
+
 formatColumns = (text, cbox, fontName, fontSize, leading) ->
   leading = fontSize * 1.2
 
   fm = getFontMetrics Fonts[fontName].r
-  dsc = fm.fontBBox[1] / 1000.0 * fontSize * -1
-  asc = fm.fontBBox[3] / 1000.0 * fontSize
+  dsc = roundPosition fm.fontBBox[1] * fontSize * -1 / 1000
+  asc = roundPosition fm.fontBBox[3] * fontSize / 1000
 
   contents = []
 
@@ -80,12 +83,13 @@ formatColumns = (text, cbox, fontName, fontSize, leading) ->
 formatText = (text, colCount, fontName, fontSize, leading) ->
   bbox = calcBBox(PaperSizeLetter, margins)
   cbox = calcColomnBox(bbox, colCount, PointsPerInch / 4)
+  cols = formatColumns(text, cbox, fontName, fontSize, leading)
 
   bbox: bbox
   cbox: cbox
-  pageCount: 2
+  pageCount: Math.ceil(cols.length / colCount)
   columCount: colCount
-  colomns: formatColumns(text, cbox, fontName, fontSize, leading)
+  colomns: cols
   fontName: fontName
   fontSize: fontSize
 
@@ -203,19 +207,37 @@ outputPDF = (cxt) ->
 
   # Page grid
   bbox = cxt.bbox
+  bboxShape = """
+    #{bbox.x} #{bbox.y} m #{bbox.x} #{bbox.y + bbox.h} l
+    #{bbox.x} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y + bbox.h} l
+    #{bbox.x + bbox.w} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y} l
+    #{bbox.x + bbox.w} #{bbox.y} m #{bbox.x} #{bbox.y} l
+    S
+    """
+  cbox = cxt.cbox
+  cboxShapes = for dl in cbox.offs
+    x = bbox.x + dl
+    y = bbox.y
+    w = cbox.w
+    h = cbox.h
+    """
+    #{x} #{y} m #{x} #{y + h} l
+    #{x} #{y + h} m #{x + w} #{y + h} l
+    #{x + w} #{y + h} m #{x + w} #{y} l
+    #{x + w} #{y} m #{x} #{y} l
+    S
+    """
+
   s += """
     6 0 obj
     << /Length 0 >>
     stream
     q
     1 0 0 1 0 0 cm
-    .2 w
+    .1 w
     0 0 1 rg
-    #{bbox.x} #{bbox.y} m #{bbox.x} #{bbox.y + bbox.h} l
-    #{bbox.x} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y + bbox.h} l
-    #{bbox.x + bbox.w} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y} l
-    #{bbox.x + bbox.w} #{bbox.y} m #{bbox.x} #{bbox.y} l
-    S
+    #{bboxShape}
+    #{cboxShapes.join('\n')}
     Q
     endstream
     endobj\n\n
@@ -248,12 +270,12 @@ outputPDF = (cxt) ->
 
     lines = for l, lnId in col
       if lnId is 0
-        x = l.x + cxt.bbox.x + cxt.cbox.offs[colId]
+        x = l.x + cxt.bbox.x + cxt.cbox.offs[colId % cxt.columCount]
         y = l.y + cxt.bbox.y
       else
         x = l.x - col[lnId - 1].x
         y = l.y - col[lnId - 1].y
-      "#{x} #{y} Td\n(#{l.s}) Tj"
+      "#{roundPosition x} #{roundPosition y} Td\n(#{l.s}) Tj"
 
     s += """
       #{objId} 0 obj
@@ -268,14 +290,19 @@ outputPDF = (cxt) ->
       """
 
   # Xref and Trailer
+  objCount = stPgObjId + cxt.pageCount + cxt.colomns.length
+  xrefs = for objId in [1...objCount]
+    "0000000000 00000 n"
+
   s += """
     xref
-    0 10
+    0 #{objCount}
     0000000000 65535 f
+    #{xrefs.join('\n')}
 
     trailer
     <<
-      /Size 10
+      /Size #{objCount}
       /Root 1 0 R
     >>
     startxref
@@ -283,16 +310,8 @@ outputPDF = (cxt) ->
     %%EOF\n
     """
 
-###
-text = '''
-  Line 1: This is line one. Abcdefg Hijklmn Opqrst Uvwxyz.
-  Line 2: This is line two. Abcdefg Hijklmn Opqrst Uvwxyz.
-  Line 3: This is line three. Abcdefg Hijklmn Opqrst Uvwxyz.
-  '''
-###
-
 text = Md.fs.readFileSync 'format.coffee', 'utf8'
-columnCount = 2
+columnCount = 3
 fontName = 'Times'
 #fontName = 'Courier'
 fontSize = 8
