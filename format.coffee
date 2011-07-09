@@ -66,16 +66,9 @@ lineBreak = (par, colw, fs, fm) ->
   codes = []
   for ch, i in par
     uc = par.charCodeAt i
+    [code, name] = enc[uc] ? [0x3f, 'question'] # TODO: handle symbol chars
 
-    codeInfo = enc[uc]
-    if codeInfo
-      [code, psname] = codeInfo
-    else
-      # TODO: handle symbol chars
-      code = 0x3f;
-      psname = 'question'
-
-    cw = fm.charMetrics[psname].WX * fs
+    cw = fm.charMetrics[name].WX * fs
     if lw + cw > maxlw
       result.push codes
       lw = 0
@@ -306,9 +299,7 @@ outputPDF = (cxt) ->
       else
         x = l.x - col[lnId - 1].x
         y = l.y - col[lnId - 1].y
-
       hexStr = '<' + (code.toString(16) for code in l.codes).join('') + '>'
-
       "#{roundPosition x} #{roundPosition y} Td\n#{hexStr} Tj"
 
     s += """
@@ -325,14 +316,13 @@ outputPDF = (cxt) ->
 
   # Xref and Trailer
   objCount = stPgObjId + cxt.pageCount + cxt.colomns.length
-  xrefs = for objId in [1...objCount]
-    "0000000000 00000 n"
+  xrefs = ("0000000000 00000 n" for objId in [1...objCount]).join('\n')
 
   s += """
     xref
     0 #{objCount}
     0000000000 65535 f
-    #{xrefs.join('\n')}
+    #{xrefs}
 
     trailer
     <<
