@@ -3,8 +3,8 @@ afm = require './afm'
 pdf = require './pdf'
 
 run = (path, afmPath, out) ->
-  env.fs.readFile 'enc/pdfdocenc.txt', 'utf8', (err, data) ->
-    enc = pdf.loadPDFDocEncoding data
+  env.fs.readFile 'cmap/pdfdocenc.txt', 'utf8', (err, data) ->
+    cmap = pdf.loadUnicodeCharMap data
 
     env.fs.readFile afmPath, 'utf8', (err, data) ->
       fm = afm.loadAfm data
@@ -13,7 +13,7 @@ run = (path, afmPath, out) ->
         for l in data.split '\n'
           for ch, i in l
             uc = l.charCodeAt i
-            [ec, nm] = enc[uc] ? [0x3f, 'question'] # TODO: handle symbol chars
+            [ec, nm] = cmap[uc] ? [0x3f, 'question'] # TODO: handle symbol chars
             wd = fm.charMetrics[nm].WX
             out ch, uc, wd, nm
 

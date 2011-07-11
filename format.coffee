@@ -4,7 +4,7 @@
 env = require './env'
 
 pdf = require './pdf'
-enc = pdf.loadPDFDocEncoding env.fs.readFileSync('enc/pdfdocenc.txt', 'utf8')
+cmap = pdf.loadUnicodeCharMap env.fs.readFileSync('cmap/winansienc.txt', 'utf8')
 
 PointsPerInch = 72
 
@@ -66,7 +66,7 @@ lineBreak = (par, colw, fs, fm) ->
   codes = []
   for ch, i in par
     uc = par.charCodeAt i
-    [code, name] = enc[uc] ? [0x3f, 'question'] # TODO: handle symbol chars
+    [code, name] = cmap[uc] ? [0x3f, 'question'] # TODO: handle symbol chars
 
     cw = fm.charMetrics[name].WX * fs
     if lw + cw > maxlw
@@ -169,6 +169,7 @@ outputPDF = (cxt) ->
         /Type /Font
         /Subtype /Type1
         /BaseFont /Times-Roman
+        /Encoding /WinAnsiEncoding
         >>
       /F2 <<
         /Type /Font
