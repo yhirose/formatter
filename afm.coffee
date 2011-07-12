@@ -1,5 +1,9 @@
 # **Afm** module privides font metrics information of Adobe AFM file format.
+# See the AFM specification to get more information.
 
+# Loads font metrics information from AFM. The data format is:
+#    KEY VALUE
+# Value format totally depends on the key.
 exports.loadAfm = (data) ->
   afm = charMetrics: {}
   lines = (l.trim() for l in data.split '\n')
@@ -10,6 +14,9 @@ exports.loadAfm = (data) ->
       afm.fontBBox = (parseInt(x, 10) for x in l.split(' ').splice(1))
   afm
 
+# Parse character metrics info. The data format is:
+#     CMD: (DATA)+ (; CMD: (DATA)+)*
+# Data type would be integer decimal or string depending on the command.
 parseAfmCharMetrics = (afm, lines, i) ->
   l = lines[i]
   until /^EndCharMetrics/.exec l

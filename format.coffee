@@ -1,17 +1,30 @@
-#
-#
-#
+# Simple PDF text formatter.
+# This script formats text into columns and pages and outputs a PDF file.
+# For now, it supports Latin based languages by using 14 Adobe standard Type1
+# fonts, such as Times-Roman, Helvetica and so on.
+# Fonts are not embedded in the PDF file. So it's up to PDF reader which fonts
+# actually will be chosen when rendering on screen or paper.
+
+#### Dependencies
+
+# Load OS functions.
 env = require './env'
 
+# Load utilty functions for PDF processing.
 pdf = require './pdf'
-cmap = pdf.loadUnicodeCharMap env.fs.readFileSync('cmap/winansienc.txt', 'utf8')
 
+# Load Unicode character map for WinAnsiEncoding.
+cmap = pdf.loadUnicodeCharMap env.fs.readFileSync('cmap/standard.txt', 'utf8')
+
+#### Constants and globals
+
+# 1 inch is equal to 72 points.
 PointsPerInch = 72
 
-PaperSizeLetter =
-  w: 612
-  h: 792
+# US Letter size in point.
+PaperSizeLetter = w: 612, h: 792
 
+# Font registry.
 Fonts =
   Times:
     r:  { no: 1, type: 'afm', name: 'Times-Roman.afm' }
@@ -29,22 +42,30 @@ Fonts =
     i:  { no: 11, type: 'afm', name: 'Courier-Oblique.afm' }
     bi: { no: 12, type: 'afm', name: 'Courier-BoldOblique.afm' }
 
+# Paper margins in point.
 margins =
   l: PointsPerInch / 2
   t: PointsPerInch / 2
   r: PointsPerInch / 2
   b: PointsPerInch / 2
 
+#### Handle font information.
+
+# Load font metrics from AFM (Adobe Font Metrics) file.
 getFontMetrics = (font) ->
   afm = require './afm'
   afm.loadAfm env.fs.readFileSync('./afm/' + font.name, 'utf8')
 
+#### Formatting text.
+
+# Calculate boundary box on pager in point.
 calcBBox = (paperSize, margins) ->
   x: margins.l
   y: margins.b
   w: paperSize.w - (margins.l + margins.r)
   h: paperSize.h - (margins.t + margins.b)
 
+# Calculate column boundary box in point.
 calcColomnBox = (bbox, cols, gap) ->
   # `cols` must be an integer value greater than 0
   w = (bbox.w - gap * (cols - 1)) / cols
@@ -55,22 +76,24 @@ calcColomnBox = (bbox, cols, gap) ->
   h: bbox.h
   offs: offs
 
+# Round position by 3 digits below decimal point.
 roundPosition = (x) ->
   Math.round(x * 1000) / 1000
 
+# Line break algorithm.
 lineBreak = (par, colw, fs, fm) ->
   result = []
   maxlw = colw * 1000
   lw = 0
   st = 0
   codes = []
-  for ch, i in par
-    uc = par.charCodeAt i
+  for ch, i in par.text
+    uc = par.text.charCodeAt i
     [code, name] = cmap[uc] ? [0x3f, 'question'] # TODO: handle symbol chars
 
     cw = fm.charMetrics[name].WX * fs
     if lw + cw > maxlw
-      result.push codes
+      result.push x: 0, codes: codes
       lw = 0
       st = i
       codes = []
@@ -79,11 +102,12 @@ lineBreak = (par, colw, fs, fm) ->
     codes.push code
 
   if st < i or result.length is 0
-    result.push codes
+    result.push x: 0, codes: codes
 
   result
 
-formatColumns = (text, cbox, fontName, fontSize, leading) ->
+# Format columns.
+formatColumns = (paragraphs, cbox, fontName, fontSize, leading) ->
   leading = fontSize * 1.2
 
   fm = getFontMetrics Fonts[fontName].r
@@ -93,21 +117,26 @@ formatColumns = (text, cbox, fontName, fontSize, leading) ->
   contents = []
   col = []
   y = cbox.h - asc
-  for par in text.split '\n'
-    for codes in lineBreak par, cbox.w, fontSize, fm
+  for par in paragraphs
+    for lineInfo in lineBreak par, cbox.w, fontSize, fm
       if y - dsc < 0
         contents.push col
         col = []
         y = cbox.h - asc
-      col.push x: 0, y: y, codes: codes
+
+      lineInfo.y = y
+      col.push lineInfo
+
       y -= leading
+
   contents.push col if col.length > 0
   contents
 
-formatText = (text, colCount, fontName, fontSize, leading) ->
+# Format pages.
+formatText = (paragraphs, colCount, fontName, fontSize, leading) ->
   bbox = calcBBox(PaperSizeLetter, margins)
   cbox = calcColomnBox(bbox, colCount, PointsPerInch / 4)
-  cols = formatColumns(text, cbox, fontName, fontSize, leading)
+  cols = formatColumns(paragraphs, cbox, fontName, fontSize, leading)
 
   bbox: bbox
   cbox: cbox
@@ -117,6 +146,9 @@ formatText = (text, colCount, fontName, fontSize, leading) ->
   fontName: fontName
   fontSize: fontSize
 
+#### Generate PDF files from the formatted text information.
+
+# Format pages
 outputPDF = (cxt) ->
   # PDF version
   s = '%PDF-1.4\n\n'
@@ -169,7 +201,6 @@ outputPDF = (cxt) ->
         /Type /Font
         /Subtype /Type1
         /BaseFont /Times-Roman
-        /Encoding /WinAnsiEncoding
         >>
       /F2 <<
         /Type /Font
@@ -214,17 +245,17 @@ outputPDF = (cxt) ->
       /F10 <<
         /Type /Font
         /Subtype /Type1
-        /BaseFont /Couurier-Bold
+        /BaseFont /Courier-Bold
         >>
       /F11 <<
         /Type /Font
         /Subtype /Type1
-        /BaseFont /Couurier-Oblique
+        /BaseFont /Courier-Oblique
         >>
       /F12 <<
         /Type /Font
         /Subtype /Type1
-        /BaseFont /Couurier-BoldOblique
+        /BaseFont /Courier-BoldOblique
         >>
     >>
     endobj\n\n
@@ -335,14 +366,30 @@ outputPDF = (cxt) ->
     %%EOF\n
     """
 
-# Run the script.
+#### Run the script.
+
+# Open a script file.
 srcPath = env.args[2]
 env.readFileOrStdin srcPath, 'utf8', (data) ->
+
+  # Setup formatting options
   columnCount = 3
   fontName = 'Times'
   fontSize = 8
   leading = fontSize * 1.2
 
-  cxt = formatText data, columnCount, fontName, fontSize, leading
+  # Setup paragraph data
+  pargraphs = for text in data.split '\n'
+    {
+      text: text
+      style:
+        align: 'left'
+        break: 'word'
+    }
+
+  # Format text
+  cxt = formatText pargraphs, columnCount, fontName, fontSize, leading
+
+  # Generate PDF, and output to stdin.
   pdf = outputPDF cxt
   env.print pdf
