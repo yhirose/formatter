@@ -108,8 +108,6 @@ lineBreak = (par, colw, fs, fm) ->
 
 # Format columns.
 formatColumns = (paragraphs, cbox, fontName, fontSize, leading) ->
-  leading = fontSize * 1.2
-
   fm = getFontMetrics Fonts[fontName].r
   dsc = roundPosition fm.fontBBox[1] * fontSize * -1 / 1000
   asc = roundPosition fm.fontBBox[3] * fontSize / 1000
@@ -368,6 +366,16 @@ outputPDF = (cxt) ->
 
 #### Run the script.
 
+makeParagraphDataFromPlainText = (data) ->
+  for text in data.split '\n'
+    {
+      text: text
+      attributes: undefined
+      style:
+        align: 'left'
+        break: 'word'
+    }
+
 # Open a script file.
 srcPath = env.args[2]
 env.readFileOrStdin srcPath, 'utf8', (data) ->
@@ -379,16 +387,10 @@ env.readFileOrStdin srcPath, 'utf8', (data) ->
   leading = fontSize * 1.2
 
   # Setup paragraph data
-  pargraphs = for text in data.split '\n'
-    {
-      text: text
-      style:
-        align: 'left'
-        break: 'word'
-    }
+  paragraphs = makeParagraphDataFromPlainText data
 
   # Format text
-  cxt = formatText pargraphs, columnCount, fontName, fontSize, leading
+  cxt = formatText paragraphs, columnCount, fontName, fontSize, leading
 
   # Generate PDF, and output to stdin.
   pdf = outputPDF cxt
