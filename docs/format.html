@@ -1,0 +1,311 @@
+<!DOCTYPE html>  <html> <head>   <title>format.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="afm.html">                 afm.coffee               </a>                                           <a class="source" href="env.html">                 env.coffee               </a>                                           <a class="source" href="format.html">                 format.coffee               </a>                                           <a class="source" href="pdf.html">                 pdf.coffee               </a>                                           <a class="source" href="sandbox.html">                 sandbox.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               format.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>               <p>Simple PDF text formatter.
+This script formats text into columns and pages and outputs a PDF file.
+For now, it supports Latin based languages by using 14 Adobe standard Type1
+fonts, such as Times-Roman, Helvetica and so on.
+Fonts are not embedded in the PDF file. So it's up to PDF reader which fonts
+actually will be chosen when rendering on screen or paper.</p>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <h3>Dependencies</h3>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>Load OS functions.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">env = </span><span class="nx">require</span> <span class="s1">&#39;./env&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>Load utilty functions for PDF processing.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">pdf = </span><span class="nx">require</span> <span class="s1">&#39;./pdf&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>Load Unicode character map for WinAnsiEncoding.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">cmap = </span><span class="nx">pdf</span><span class="p">.</span><span class="nx">loadUnicodeCharMap</span> <span class="nx">env</span><span class="p">.</span><span class="nx">fs</span><span class="p">.</span><span class="nx">readFileSync</span><span class="p">(</span><span class="s1">&#39;cmap/standard.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;utf8&#39;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <h3>Constants and globals</h3>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>1 inch is equal to 72 points.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">PointsPerInch = </span><span class="mi">72</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>US Letter size in point.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">PaperSizeLetter = w: </span><span class="mi">612</span><span class="p">,</span> <span class="nv">h: </span><span class="mi">792</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>Font registry.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">Fonts =</span>
+  <span class="nv">Times:</span>
+    <span class="nv">r: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Times-Roman.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">b: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Times-Bold.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">i: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Times-Italic.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">bi: </span><span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">4</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Times-BoldItalic.afm&#39;</span> <span class="p">}</span>
+  <span class="nv">Helvetica:</span>
+    <span class="nv">r: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">5</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Helvetica.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">b: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">6</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Helvetica-Bold.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">i: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">7</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Helvetica-Oblique.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">bi: </span><span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Helvetica-BoldOblique.afm&#39;</span> <span class="p">}</span>
+  <span class="nv">Courier:</span>
+    <span class="nv">r: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span>  <span class="mi">9</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Courier.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">b: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Courier-Bold.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">i: </span> <span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">11</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Courier-Oblique.afm&#39;</span> <span class="p">}</span>
+    <span class="nv">bi: </span><span class="p">{</span> <span class="kc">no</span><span class="o">:</span> <span class="mi">12</span><span class="p">,</span> <span class="nv">type: </span><span class="s1">&#39;afm&#39;</span><span class="p">,</span> <span class="nv">name: </span><span class="s1">&#39;Courier-BoldOblique.afm&#39;</span> <span class="p">}</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>Paper margins in point.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">margins =</span>
+  <span class="nv">l: </span><span class="nx">PointsPerInch</span> <span class="err">/ 2</span>
+  <span class="nv">t: </span><span class="nx">PointsPerInch</span> <span class="err">/ 2</span>
+  <span class="nv">r: </span><span class="nx">PointsPerInch</span> <span class="err">/ 2</span>
+  <span class="nv">b: </span><span class="nx">PointsPerInch</span> <span class="err">/ 2</span></pre></div>             </td>           </tr>                               <tr id="section-11">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-11">&#182;</a>               </div>               <h3>Handle font information.</h3>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-12">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-12">&#182;</a>               </div>               <p>Load font metrics from AFM (Adobe Font Metrics) file.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">getFontMetrics = </span><span class="nf">(font) -&gt;</span>
+  <span class="nv">afm = </span><span class="nx">require</span> <span class="s1">&#39;./afm&#39;</span>
+  <span class="nx">afm</span><span class="p">.</span><span class="nx">loadAfm</span> <span class="nx">env</span><span class="p">.</span><span class="nx">fs</span><span class="p">.</span><span class="nx">readFileSync</span><span class="p">(</span><span class="s1">&#39;./afm/&#39;</span> <span class="o">+</span> <span class="nx">font</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="s1">&#39;utf8&#39;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-13">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-13">&#182;</a>               </div>               <h3>Formatting text.</h3>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-14">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-14">&#182;</a>               </div>               <p>Calculate boundary box on pager in point.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">calcBBox = </span><span class="nf">(paperSize, margins) -&gt;</span>
+  <span class="nv">x: </span><span class="nx">margins</span><span class="p">.</span><span class="nx">l</span>
+  <span class="nv">y: </span><span class="nx">margins</span><span class="p">.</span><span class="nx">b</span>
+  <span class="nv">w: </span><span class="nx">paperSize</span><span class="p">.</span><span class="nx">w</span> <span class="o">-</span> <span class="p">(</span><span class="nx">margins</span><span class="p">.</span><span class="nx">l</span> <span class="o">+</span> <span class="nx">margins</span><span class="p">.</span><span class="nx">r</span><span class="p">)</span>
+  <span class="nv">h: </span><span class="nx">paperSize</span><span class="p">.</span><span class="nx">h</span> <span class="o">-</span> <span class="p">(</span><span class="nx">margins</span><span class="p">.</span><span class="nx">t</span> <span class="o">+</span> <span class="nx">margins</span><span class="p">.</span><span class="nx">b</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-15">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-15">&#182;</a>               </div>               <p>Calculate column boundary box in point.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">calcColomnBox = </span><span class="nf">(bbox, cols, gap) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-16">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-16">&#182;</a>               </div>               <p><code>cols</code> must be an integer value greater than 0</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">w = </span><span class="p">(</span><span class="nx">bbox</span><span class="p">.</span><span class="nx">w</span> <span class="o">-</span> <span class="nx">gap</span> <span class="o">*</span> <span class="p">(</span><span class="nx">cols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="nx">cols</span>
+  <span class="nv">offs = </span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="nx">offs</span><span class="p">.</span><span class="nx">push</span> <span class="nx">offs</span><span class="p">[</span><span class="nx">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="nx">w</span> <span class="o">+</span> <span class="nx">gap</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">...</span><span class="nx">cols</span><span class="p">]</span>
+
+  <span class="nv">w: </span><span class="nx">w</span>
+  <span class="nv">h: </span><span class="nx">bbox</span><span class="p">.</span><span class="nx">h</span>
+  <span class="nv">offs: </span><span class="nx">offs</span></pre></div>             </td>           </tr>                               <tr id="section-17">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-17">&#182;</a>               </div>               <p>Round position by 3 digits below decimal point.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">roundPosition = </span><span class="nf">(x) -&gt;</span>
+  <span class="nb">Math</span><span class="p">.</span><span class="nx">round</span><span class="p">(</span><span class="nx">x</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>Line break algorithm.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">lineBreak = </span><span class="nf">(par, colw, fs, fm) -&gt;</span>
+  <span class="nv">result = </span><span class="p">[]</span>
+  <span class="nv">maxlw = </span><span class="nx">colw</span> <span class="o">*</span> <span class="mi">1000</span>
+  <span class="nv">lw = </span><span class="mi">0</span>
+  <span class="nv">st = </span><span class="mi">0</span>
+  <span class="nv">codes = </span><span class="p">[]</span>
+  <span class="k">for</span> <span class="nx">ch</span><span class="p">,</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">par</span><span class="p">.</span><span class="nx">text</span>
+    <span class="nv">uc = </span><span class="nx">par</span><span class="p">.</span><span class="nx">text</span><span class="p">.</span><span class="nx">charCodeAt</span> <span class="nx">i</span>
+    <span class="p">[</span><span class="nx">code</span><span class="p">,</span> <span class="nx">name</span><span class="p">]</span> <span class="o">=</span> <span class="nx">cmap</span><span class="p">[</span><span class="nx">uc</span><span class="p">]</span> <span class="o">?</span> <span class="p">[</span><span class="mh">0x3f</span><span class="p">,</span> <span class="s1">&#39;question&#39;</span><span class="p">]</span> <span class="c1"># TODO: handle symbol chars</span>
+
+    <span class="nv">cw = </span><span class="nx">fm</span><span class="p">.</span><span class="nx">charMetrics</span><span class="p">[</span><span class="nx">name</span><span class="p">].</span><span class="nx">WX</span> <span class="o">*</span> <span class="nx">fs</span>
+    <span class="k">if</span> <span class="nx">lw</span> <span class="o">+</span> <span class="nx">cw</span> <span class="o">&gt;</span> <span class="nx">maxlw</span>
+      <span class="nx">result</span><span class="p">.</span><span class="nx">push</span> <span class="nv">x: </span><span class="mi">0</span><span class="p">,</span> <span class="nv">codes: </span><span class="nx">codes</span>
+      <span class="nv">lw = </span><span class="mi">0</span>
+      <span class="nv">st = </span><span class="nx">i</span>
+      <span class="nv">codes = </span><span class="p">[]</span>
+
+    <span class="nx">lw</span> <span class="o">+=</span> <span class="nx">cw</span>
+    <span class="nx">codes</span><span class="p">.</span><span class="nx">push</span> <span class="nx">code</span>
+
+  <span class="k">if</span> <span class="nx">st</span> <span class="o">&lt;</span> <span class="nx">i</span> <span class="o">or</span> <span class="nx">result</span><span class="p">.</span><span class="nx">length</span> <span class="o">is</span> <span class="mi">0</span>
+    <span class="nx">result</span><span class="p">.</span><span class="nx">push</span> <span class="nv">x: </span><span class="mi">0</span><span class="p">,</span> <span class="nv">codes: </span><span class="nx">codes</span>
+
+  <span class="nx">result</span></pre></div>             </td>           </tr>                               <tr id="section-19">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-19">&#182;</a>               </div>               <p>Format columns.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">formatColumns = </span><span class="nf">(paragraphs, cbox, fontName, fontSize, leadingRatio) -&gt;</span>
+  <span class="nv">fm = </span><span class="nx">getFontMetrics</span> <span class="nx">Fonts</span><span class="p">[</span><span class="nx">fontName</span><span class="p">].</span><span class="nx">r</span>
+  <span class="nv">dsc = </span><span class="nx">roundPosition</span> <span class="nx">fm</span><span class="p">.</span><span class="nx">fontBBox</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nx">fontSize</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">1000</span>
+  <span class="nv">asc = </span><span class="nx">roundPosition</span> <span class="nx">fm</span><span class="p">.</span><span class="nx">fontBBox</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="nx">fontSize</span> <span class="err">/ 1000</span>
+
+  <span class="nv">contents = </span><span class="p">[]</span>
+  <span class="nv">col = </span><span class="p">[]</span>
+  <span class="nv">y = </span><span class="nx">cbox</span><span class="p">.</span><span class="nx">h</span> <span class="o">-</span> <span class="nx">asc</span>
+  <span class="k">for</span> <span class="nx">par</span> <span class="k">in</span> <span class="nx">paragraphs</span>
+    <span class="k">for</span> <span class="nx">lineInfo</span> <span class="k">in</span> <span class="nx">lineBreak</span> <span class="nx">par</span><span class="p">,</span> <span class="nx">cbox</span><span class="p">.</span><span class="nx">w</span><span class="p">,</span> <span class="nx">fontSize</span><span class="p">,</span> <span class="nx">fm</span>
+      <span class="k">if</span> <span class="nx">y</span> <span class="o">-</span> <span class="nx">dsc</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="nx">contents</span><span class="p">.</span><span class="nx">push</span> <span class="nx">col</span>
+        <span class="nv">col = </span><span class="p">[]</span>
+        <span class="nv">y = </span><span class="nx">cbox</span><span class="p">.</span><span class="nx">h</span> <span class="o">-</span> <span class="nx">asc</span>
+
+      <span class="nv">lineInfo.y = </span><span class="nx">y</span>
+      <span class="nx">col</span><span class="p">.</span><span class="nx">push</span> <span class="nx">lineInfo</span>
+
+      <span class="nx">y</span> <span class="o">-=</span> <span class="nx">fontSize</span> <span class="o">*</span> <span class="nx">leadingRatio</span>
+
+  <span class="nx">contents</span><span class="p">.</span><span class="nx">push</span> <span class="nx">col</span> <span class="k">if</span> <span class="nx">col</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+  <span class="nx">contents</span></pre></div>             </td>           </tr>                               <tr id="section-20">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-20">&#182;</a>               </div>               <p>Format pages.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">formatText = </span><span class="nf">(paragraphs, colCount, fontName, fontSize, leadingRatio) -&gt;</span>
+  <span class="nv">bbox = </span><span class="nx">calcBBox</span><span class="p">(</span><span class="nx">PaperSizeLetter</span><span class="p">,</span> <span class="nx">margins</span><span class="p">)</span>
+  <span class="nv">cbox = </span><span class="nx">calcColomnBox</span><span class="p">(</span><span class="nx">bbox</span><span class="p">,</span> <span class="nx">colCount</span><span class="p">,</span> <span class="nx">PointsPerInch</span> <span class="err">/ 4)</span>
+  <span class="nv">cols = </span><span class="nx">formatColumns</span><span class="p">(</span><span class="nx">paragraphs</span><span class="p">,</span> <span class="nx">cbox</span><span class="p">,</span> <span class="nx">fontName</span><span class="p">,</span> <span class="nx">fontSize</span><span class="p">,</span> <span class="nx">leadingRatio</span><span class="p">)</span>
+
+  <span class="nv">bbox: </span><span class="nx">bbox</span>
+  <span class="nv">cbox: </span><span class="nx">cbox</span>
+  <span class="nv">pageCount: </span><span class="nb">Math</span><span class="p">.</span><span class="nx">ceil</span><span class="p">(</span><span class="nx">cols</span><span class="p">.</span><span class="nx">length</span> <span class="err">/ colCount)</span>
+  <span class="nv">columCount: </span><span class="nx">colCount</span>
+  <span class="nv">colomns: </span><span class="nx">cols</span>
+  <span class="nv">fontName: </span><span class="nx">fontName</span>
+  <span class="nv">fontSize: </span><span class="nx">fontSize</span></pre></div>             </td>           </tr>                               <tr id="section-21">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-21">&#182;</a>               </div>               <h3>Generate PDF files from the formatted text information.</h3>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-22">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-22">&#182;</a>               </div>               <p>Format pages</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">outputPDF = </span><span class="nf">(cxt) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-23">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-23">&#182;</a>               </div>               <p>PDF version</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">s = </span><span class="s1">&#39;%PDF-1.4\n\n&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-24">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-24">&#182;</a>               </div>               <p>Catalog</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">stPgObjId = </span><span class="mi">7</span>
+  <span class="nv">kids = </span><span class="p">(</span><span class="s2">&quot;#{i + stPgObjId} 0 R&quot;</span> <span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">cxt</span><span class="p">.</span><span class="nx">pageCount</span><span class="p">]).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+  <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    1 0 obj</span>
+<span class="s2">    &lt;&lt;</span>
+<span class="s2">      /Type /Catalog</span>
+<span class="s2">      /Pages 2 0 R</span>
+<span class="s2">    &gt;&gt;</span>
+<span class="s2">    endobj\n\n</span>
+<span class="s2">    &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-25">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-25">&#182;</a>               </div>               <p>Pages</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    2 0 obj</span>
+<span class="s2">    &lt;&lt;</span>
+<span class="s2">      /Type /Pages</span>
+<span class="s2">      /Kids [#{kids}]</span>
+<span class="s2">      /Count #{cxt.pageCount}</span>
+<span class="s2">    &gt;&gt;</span>
+<span class="s2">    endobj\n\n</span>
+<span class="s2">    &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-26">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-26">&#182;</a>               </div>               <p>MediaBox</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    3 0 obj</span>
+<span class="s2">    &lt;&lt;</span>
+<span class="s2">      [0 0 612 792]</span>
+<span class="s2">    &gt;&gt;</span>
+<span class="s2">    endobj\n\n</span>
+<span class="s2">    &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-27">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-27">&#182;</a>               </div>               <p>ProcSet</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    4 0 obj</span>
+<span class="s2">      [/PDF /Text]</span>
+<span class="s2">    endobj\n\n</span>
+<span class="s2">    &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-28">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-28">&#182;</a>               </div>               <p>Font</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    5 0 obj</span>
+<span class="s2">    &lt;&lt;</span>
+<span class="s2">      /F1 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Times-Roman</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F2 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Times-Bold</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F3 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Times-Italic</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F4 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Times-BoldItalic</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F5 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Helvetica</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F6 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Helvetica-Bold</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F7 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Helvetica-Oblique</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F8 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Helvetica-BoldOblique</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F9 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Courier</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F10 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Courier-Bold</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F11 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Courier-Oblique</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">      /F12 &lt;&lt;</span>
+<span class="s2">        /Type /Font</span>
+<span class="s2">        /Subtype /Type1</span>
+<span class="s2">        /BaseFont /Courier-BoldOblique</span>
+<span class="s2">        &gt;&gt;</span>
+<span class="s2">    &gt;&gt;</span>
+<span class="s2">    endobj\n\n</span>
+<span class="s2">    &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-29">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-29">&#182;</a>               </div>               <p>Page grid</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">bbox = </span><span class="nx">cxt</span><span class="p">.</span><span class="nx">bbox</span>
+  <span class="nv">bboxShape = </span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    #{bbox.x} #{bbox.y} m #{bbox.x} #{bbox.y + bbox.h} l</span>
+<span class="s2">    #{bbox.x} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y + bbox.h} l</span>
+<span class="s2">    #{bbox.x + bbox.w} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y} l</span>
+<span class="s2">    #{bbox.x + bbox.w} #{bbox.y} m #{bbox.x} #{bbox.y} l</span>
+<span class="s2">    S</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+  <span class="nv">cbox = </span><span class="nx">cxt</span><span class="p">.</span><span class="nx">cbox</span>
+  <span class="nv">cboxShapes = </span><span class="k">for</span> <span class="nx">dl</span> <span class="k">in</span> <span class="nx">cbox</span><span class="p">.</span><span class="nx">offs</span>
+    <span class="nv">x = </span><span class="nx">bbox</span><span class="p">.</span><span class="nx">x</span> <span class="o">+</span> <span class="nx">dl</span>
+    <span class="nv">y = </span><span class="nx">bbox</span><span class="p">.</span><span class="nx">y</span>
+    <span class="nv">w = </span><span class="nx">cbox</span><span class="p">.</span><span class="nx">w</span>
+    <span class="nv">h = </span><span class="nx">cbox</span><span class="p">.</span><span class="nx">h</span>
+    <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    #{x} #{y} m #{x} #{y + h} l</span>
+<span class="s2">    #{x} #{y + h} m #{x + w} #{y + h} l</span>
+<span class="s2">    #{x + w} #{y + h} m #{x + w} #{y} l</span>
+<span class="s2">    #{x + w} #{y} m #{x} #{y} l</span>
+<span class="s2">    S</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+  <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    6 0 obj</span>
+<span class="s2">    &lt;&lt; /Length 0 &gt;&gt;</span>
+<span class="s2">    stream</span>
+<span class="s2">    q</span>
+<span class="s2">    1 0 0 1 0 0 cm</span>
+<span class="s2">    .1 w</span>
+<span class="s2">    0 0 1 rg</span>
+<span class="s2">    #{bboxShape}</span>
+<span class="s2">    #{cboxShapes.join(&#39;\n&#39;)}</span>
+<span class="s2">    Q</span>
+<span class="s2">    endstream</span>
+<span class="s2">    endobj\n\n</span>
+<span class="s2">    &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-30">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-30">&#182;</a>               </div>               <p>Page</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">for</span> <span class="nx">pgId</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">cxt</span><span class="p">.</span><span class="nx">pageCount</span><span class="p">]</span>
+    <span class="nv">pgObjId = </span><span class="nx">stPgObjId</span> <span class="o">+</span> <span class="nx">pgId</span>
+    <span class="nv">stColId = </span><span class="nx">cxt</span><span class="p">.</span><span class="nx">columCount</span> <span class="o">*</span> <span class="nx">pgId</span>
+    <span class="nv">stColObjId = </span><span class="nx">stPgObjId</span> <span class="o">+</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">pageCount</span> <span class="o">+</span> <span class="nx">stColId</span>
+    <span class="nv">objIds = </span><span class="k">for</span> <span class="nx">i</span> <span class="k">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">...</span><span class="nx">cxt</span><span class="p">.</span><span class="nx">columCount</span><span class="p">]</span> <span class="k">when</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">colomns</span><span class="p">[</span><span class="nx">stColId</span> <span class="o">+</span> <span class="nx">i</span><span class="p">]</span>
+      <span class="nx">stColObjId</span> <span class="o">+</span> <span class="nx">i</span>
+    <span class="nv">contRefs = </span><span class="p">(</span><span class="s2">&quot;#{id} 0 R&quot;</span> <span class="k">for</span> <span class="nx">id</span> <span class="k">in</span> <span class="nx">objIds</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+    <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      #{pgObjId} 0 obj</span>
+<span class="s2">      &lt;&lt;</span>
+<span class="s2">        /Type /Page</span>
+<span class="s2">        /Parent 2 0 R</span>
+<span class="s2">        /MediaBox 3 0 R</span>
+<span class="s2">        /Contents [6 0 R #{contRefs}]</span>
+<span class="s2">        /Resources &lt;&lt; /ProcSet 4 0 R /Font 5 0 R &gt;&gt;</span>
+<span class="s2">      &gt;&gt;</span>
+<span class="s2">      endobj\n\n</span>
+<span class="s2">      &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-31">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-31">&#182;</a>               </div>               <p>Contents</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">for</span> <span class="nx">col</span><span class="p">,</span> <span class="nx">colId</span> <span class="k">in</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">colomns</span>
+    <span class="nv">objId = </span><span class="nx">stPgObjId</span> <span class="o">+</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">pageCount</span> <span class="o">+</span> <span class="nx">colId</span>
+
+    <span class="nv">lines = </span><span class="k">for</span> <span class="nx">l</span><span class="p">,</span> <span class="nx">lnId</span> <span class="k">in</span> <span class="nx">col</span>
+      <span class="k">if</span> <span class="nx">lnId</span> <span class="o">is</span> <span class="mi">0</span>
+        <span class="nv">x = </span><span class="nx">l</span><span class="p">.</span><span class="nx">x</span> <span class="o">+</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">bbox</span><span class="p">.</span><span class="nx">x</span> <span class="o">+</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">cbox</span><span class="p">.</span><span class="nx">offs</span><span class="p">[</span><span class="nx">colId</span> <span class="o">%</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">columCount</span><span class="p">]</span>
+        <span class="nv">y = </span><span class="nx">l</span><span class="p">.</span><span class="nx">y</span> <span class="o">+</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">bbox</span><span class="p">.</span><span class="nx">y</span>
+      <span class="k">else</span>
+        <span class="nv">x = </span><span class="nx">l</span><span class="p">.</span><span class="nx">x</span> <span class="o">-</span> <span class="nx">col</span><span class="p">[</span><span class="nx">lnId</span> <span class="o">-</span> <span class="mi">1</span><span class="p">].</span><span class="nx">x</span>
+        <span class="nv">y = </span><span class="nx">l</span><span class="p">.</span><span class="nx">y</span> <span class="o">-</span> <span class="nx">col</span><span class="p">[</span><span class="nx">lnId</span> <span class="o">-</span> <span class="mi">1</span><span class="p">].</span><span class="nx">y</span>
+      <span class="nv">hexStr = </span><span class="s1">&#39;&lt;&#39;</span> <span class="o">+</span> <span class="p">(</span><span class="nx">code</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span> <span class="k">for</span> <span class="nx">code</span> <span class="k">in</span> <span class="nx">l</span><span class="p">.</span><span class="nx">codes</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&gt;&#39;</span>
+      <span class="s2">&quot;#{roundPosition x} #{roundPosition y} Td\n#{hexStr} Tj&quot;</span>
+
+    <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      #{objId} 0 obj</span>
+<span class="s2">      &lt;&lt; /Length 0 &gt;&gt;</span>
+<span class="s2">      stream</span>
+<span class="s2">      BT</span>
+<span class="s2">      /F#{Fonts[cxt.fontName].r.no} #{cxt.fontSize} Tf</span>
+<span class="s2">      #{lines.join(&#39;\n&#39;)}</span>
+<span class="s2">      ET</span>
+<span class="s2">      endstream</span>
+<span class="s2">      endobj\n\n</span>
+<span class="s2">      &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-32">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-32">&#182;</a>               </div>               <p>Xref and Trailer</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">objCount = </span><span class="nx">stPgObjId</span> <span class="o">+</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">pageCount</span> <span class="o">+</span> <span class="nx">cxt</span><span class="p">.</span><span class="nx">colomns</span><span class="p">.</span><span class="nx">length</span>
+  <span class="nv">xrefs = </span><span class="p">(</span><span class="s2">&quot;0000000000 00000 n&quot;</span> <span class="k">for</span> <span class="nx">objId</span> <span class="k">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">...</span><span class="nx">objCount</span><span class="p">]).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">)</span>
+
+  <span class="nx">s</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    xref</span>
+<span class="s2">    0 #{objCount}</span>
+<span class="s2">    0000000000 65535 f</span>
+<span class="s2">    #{xrefs}</span>
+
+<span class="s2">    trailer</span>
+<span class="s2">    &lt;&lt;</span>
+<span class="s2">      /Size #{objCount}</span>
+<span class="s2">      /Root 1 0 R</span>
+<span class="s2">    &gt;&gt;</span>
+<span class="s2">    startxref</span>
+<span class="s2">    0</span>
+<span class="s2">    %%EOF\n</span>
+<span class="s2">    &quot;&quot;&quot;</span></pre></div>             </td>           </tr>                               <tr id="section-33">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-33">&#182;</a>               </div>               <h3>Run the script.</h3>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">makeParagraphDataFromPlainText = </span><span class="nf">(data) -&gt;</span>
+  <span class="k">for</span> <span class="nx">text</span> <span class="k">in</span> <span class="nx">data</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;\n&#39;</span>
+    <span class="p">{</span>
+      <span class="nv">text: </span><span class="nx">text</span>
+      <span class="nv">attributes: </span><span class="kc">undefined</span>
+      <span class="nv">style:</span>
+        <span class="nv">align: </span><span class="s1">&#39;left&#39;</span>
+        <span class="k">break</span><span class="o">:</span> <span class="s1">&#39;word&#39;</span>
+    <span class="p">}</span></pre></div>             </td>           </tr>                               <tr id="section-34">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-34">&#182;</a>               </div>               <p>Parse arguments</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">options =</span>
+  <span class="nv">columnCount: </span><span class="mi">2</span><span class="p">,</span>
+  <span class="nv">fontName: </span><span class="s1">&#39;Times&#39;</span><span class="p">,</span>
+  <span class="nv">fontSize: </span><span class="mi">7</span><span class="p">,</span>
+  <span class="nv">leadingRatio: </span><span class="mf">1.2</span>
+
+<span class="nv">srcPath = </span><span class="kc">undefined</span>
+
+<span class="k">for</span> <span class="nx">arg</span> <span class="k">in</span> <span class="nx">env</span><span class="p">.</span><span class="nx">args</span><span class="p">[</span><span class="mi">2</span><span class="p">...]</span></pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <p>Parse option</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">if</span> <span class="nx">arg</span><span class="p">.</span><span class="nx">match</span> <span class="sr">/--(\w+)=(\w+)/</span>
+    <span class="p">{</span> <span class="nv">$1: </span><span class="nx">key</span><span class="p">,</span> <span class="nv">$2: </span><span class="nx">val</span> <span class="p">}</span> <span class="o">=</span> <span class="nb">RegExp</span>
+    <span class="k">switch</span> <span class="nx">key</span>
+      <span class="k">when</span> <span class="s1">&#39;fontName&#39;</span>
+        <span class="nx">options</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">val</span>
+      <span class="k">when</span> <span class="s1">&#39;columnCount&#39;</span>
+        <span class="nx">options</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">parseInt</span> <span class="nx">val</span><span class="p">,</span> <span class="mi">10</span>
+      <span class="k">else</span>
+        <span class="nx">options</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">parseFloat</span> <span class="nx">val</span></pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p>Parse script path</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="k">else</span>
+    <span class="nv">srcPath = </span><span class="nx">arg</span></pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p>Open a script file.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nx">env</span><span class="p">.</span><span class="nx">readFileOrStdin</span> <span class="nx">srcPath</span><span class="p">,</span> <span class="s1">&#39;utf8&#39;</span><span class="p">,</span> <span class="nf">(data) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>Setup paragraph data</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">paragraphs = </span><span class="nx">makeParagraphDataFromPlainText</span> <span class="nx">data</span></pre></div>             </td>           </tr>                               <tr id="section-39">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-39">&#182;</a>               </div>               <p>Format text</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">cxt = </span><span class="nx">formatText</span> <span class="nx">paragraphs</span><span class="p">,</span>
+    <span class="nx">options</span><span class="p">.</span><span class="nx">columnCount</span><span class="p">,</span>
+    <span class="nx">options</span><span class="p">.</span><span class="nx">fontName</span><span class="p">,</span>
+    <span class="nx">options</span><span class="p">.</span><span class="nx">fontSize</span><span class="p">,</span>
+    <span class="nx">options</span><span class="p">.</span><span class="nx">leadingRatio</span></pre></div>             </td>           </tr>                               <tr id="section-40">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-40">&#182;</a>               </div>               <p>Generate PDF, and output to stdin.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">pdf = </span><span class="nx">outputPDF</span> <span class="nx">cxt</span>
+  <span class="nx">env</span><span class="p">.</span><span class="nx">print</span> <span class="nx">pdf</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
