@@ -107,7 +107,7 @@ lineBreak = (par, colw, fs, fm) ->
   result
 
 # Format columns.
-formatColumns = (paragraphs, cbox, fontName, fontSize, leading) ->
+formatColumns = (paragraphs, cbox, fontName, fontSize, leadingRatio) ->
   fm = getFontMetrics Fonts[fontName].r
   dsc = roundPosition fm.fontBBox[1] * fontSize * -1 / 1000
   asc = roundPosition fm.fontBBox[3] * fontSize / 1000
@@ -125,16 +125,16 @@ formatColumns = (paragraphs, cbox, fontName, fontSize, leading) ->
       lineInfo.y = y
       col.push lineInfo
 
-      y -= leading
+      y -= fontSize * leadingRatio
 
   contents.push col if col.length > 0
   contents
 
 # Format pages.
-formatText = (paragraphs, colCount, fontName, fontSize, leading) ->
+formatText = (paragraphs, colCount, fontName, fontSize, leadingRatio) ->
   bbox = calcBBox(PaperSizeLetter, margins)
   cbox = calcColomnBox(bbox, colCount, PointsPerInch / 4)
-  cols = formatColumns(paragraphs, cbox, fontName, fontSize, leading)
+  cols = formatColumns(paragraphs, cbox, fontName, fontSize, leadingRatio)
 
   bbox: bbox
   cbox: cbox
@@ -376,21 +376,42 @@ makeParagraphDataFromPlainText = (data) ->
         break: 'word'
     }
 
-# Open a script file.
-srcPath = env.args[2]
-env.readFileOrStdin srcPath, 'utf8', (data) ->
+# Parse arguments
+options =
+  columnCount: 2,
+  fontName: 'Times',
+  fontSize: 7,
+  leadingRatio: 1.2
 
-  # Setup formatting options
-  columnCount = 3
-  fontName = 'Times'
-  fontSize = 8
-  leading = fontSize * 1.2
+srcPath = undefined
+
+for arg in env.args[2...]
+  # Parse option
+  if arg.match /--(\w+)=(\w+)/
+    { $1: key, $2: val } = RegExp
+    switch key
+      when 'fontName'
+        options[key] = val
+      when 'columnCount'
+        options[key] = parseInt val, 10
+      else
+        options[key] = parseFloat val
+  # Parse script path
+  else
+    srcPath = arg
+
+# Open a script file.
+env.readFileOrStdin srcPath, 'utf8', (data) ->
 
   # Setup paragraph data
   paragraphs = makeParagraphDataFromPlainText data
 
   # Format text
-  cxt = formatText paragraphs, columnCount, fontName, fontSize, leading
+  cxt = formatText paragraphs,
+    options.columnCount,
+    options.fontName,
+    options.fontSize,
+    options.leadingRatio
 
   # Generate PDF, and output to stdin.
   pdf = outputPDF cxt

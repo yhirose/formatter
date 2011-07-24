@@ -16,7 +16,7 @@ exports.stdin =
 
 # Reads data from file or stdin.
 exports.readFileOrStdin = (path, enc, callback) ->
-  if path
+  if typeof path is 'string'
     exports.fs.readFile path, enc, (err, data) ->
       callback data
   else
