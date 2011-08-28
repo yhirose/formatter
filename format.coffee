@@ -260,18 +260,10 @@ outputPDF = (cxt) ->
     """
 
   # Page grid
-  bbox = cxt.bbox
-  bboxShape = """
-    #{bbox.x} #{bbox.y} m #{bbox.x} #{bbox.y + bbox.h} l
-    #{bbox.x} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y + bbox.h} l
-    #{bbox.x + bbox.w} #{bbox.y + bbox.h} m #{bbox.x + bbox.w} #{bbox.y} l
-    #{bbox.x + bbox.w} #{bbox.y} m #{bbox.x} #{bbox.y} l
-    S
-    """
   cbox = cxt.cbox
   cboxShapes = for dl in cbox.offs
-    x = bbox.x + dl
-    y = bbox.y
+    x = cxt.bbox.x + dl
+    y = cxt.bbox.y
     w = cbox.w
     h = cbox.h
     """
@@ -290,7 +282,6 @@ outputPDF = (cxt) ->
     1 0 0 1 0 0 cm
     .1 w
     0 0 1 rg
-    #{bboxShape}
     #{cboxShapes.join('\n')}
     Q
     endstream
@@ -380,7 +371,7 @@ makeParagraphDataFromPlainText = (data) ->
 options =
   columnCount: 2,
   fontName: 'Times',
-  fontSize: 7,
+  fontSize: 9,
   leadingRatio: 1.2
 
 srcPath = undefined
@@ -394,7 +385,7 @@ for arg in env.args[2...]
         options[key] = val
       when 'columnCount'
         options[key] = parseInt val, 10
-      else
+      when 'fontSize'
         options[key] = parseFloat val
   # Parse script path
   else
